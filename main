@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>משחק סנייק</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 2px solid #fff;
+            background-color: #111;
+        }
+        .touch-area {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+        .up, .down {
+            position: absolute;
+            width: 100%;
+            height: 50%;
+            left: 0;
+        }
+        .up {
+            top: 0;
+        }
+        .down {
+            bottom: 0;
+        }
+        .left, .right {
+            position: absolute;
+            width: 50%;
+            height: 100%;
+        }
+        .left {
+            left: 0;
+        }
+        .right {
+            right: 0;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div class="touch-area">
+        <div class="up" onclick="changeDirection({key: 'ArrowUp'})"></div>
+        <div class="down" onclick="changeDirection({key: 'ArrowDown'})"></div>
+        <div class="left" onclick="changeDirection({key: 'ArrowLeft'})"></div>
+        <div class="right" onclick="changeDirection({key: 'ArrowRight'})"></div>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const box = 20;
+        const canvasWidth = Math.min(window.innerWidth, 400);
+        const canvasHeight = Math.min(window.innerHeight, 400);
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+
+        let snake = [{x: Math.floor(canvasWidth / box / 2) * box, y: Math.floor(canvasHeight / box / 2) * box}];
+        let direction = '';
+        let food = spawnFood(); // מיקום ההמבורגר
+
+        const snakeHeadImg = new Image();
+        const foodImg = new Image();
+        
+        snakeHeadImg.src = 'snake_head.png'; // שם התמונה של ראש הנחש
+        foodImg.src = 'burger.png'; // שם התמונה של ההמבורגר
+
+        let imagesLoaded = false;
+
+        snakeHeadImg.onload = foodImg.onload = () => {
+            if (snakeHeadImg.complete && foodImg.complete) {
+                imagesLoaded = true;
+            }
+        };
+
+        const snakeBodyColor = 'white'; // צבע הגוף
+
+        document.addEventListener('keydown', changeDirection);
+
+        function changeDirection(event) {
+            if (event.key === 'ArrowLeft' && direction !== 'RIGHT') {
+                direction = 'LEFT';
+            } else if (event.key === 'ArrowUp' && direction !== 'DOWN') {
+                direction = 'UP';
+            } else if (event.key === 'ArrowRight' && direction !== 'LEFT') {
+                direction = 'RIGHT';
+            } else if (event.key === 'ArrowDown' && direction !== 'UP') {
+                direction = 'DOWN';
+            }
+        }
+
+        function collision(head, array) {
+            for (let i = 0; i < array.length; i++) {
+                if (head.x === array[i].x && head.y === array[i].y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function spawnFood() {
+            return {
+                x: Math.floor(Math.random() * (canvasWidth / box)) * box,
+                y: Math.floor(Math.random() * (canvasHeight / box)) * box
+            };
+        }
+
+        function draw() {
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // ציור גוף הסנייק
+            for (let i = 0; i < snake.length; i++) {
+                ctx.fillStyle = snakeBodyColor;
+                ctx.fillRect(snake[i].x, snake[i].y, box, box);
+                ctx.strokeStyle = 'black';
+                ctx.strokeRect(snake[i].x, snake[i].y, box, box);
+                
+                // ציור ההמבורגר בתוך הגוף
+                if (i > 0) { // לא לצייר על הראש
+                    ctx.drawImage(foodImg, snake[i].x, snake[i].y, box, box);
+                }
+            }
+
+            // ציור ראש הסנייק בגודל 30x30 פיקסלים
+            const headSize = 30; // גודל ראש הנחש
+            ctx.drawImage(snakeHeadImg, snake[0].x - (headSize - box) / 2, snake[0].y - (headSize - box) / 2, headSize, headSize);
+
+            // ציור האוכל (המבורגר)
+            ctx.drawImage(foodImg, food.x, food.y, box, box);
+
+            let snakeX = snake[0].x;
+            let snakeY = snake[0].y;
+
+            if (direction === 'LEFT') snakeX -= box;
+            if (direction === 'UP') snakeY -= box;
+            if (direction === 'RIGHT') snakeX += box;
+            if (direction === 'DOWN') snakeY += box;
+
+            // בדוק אם הנחש אוכל את ההמבורגר
+            if (snakeX === food.x && snakeY === food.y) {
+                food = spawnFood(); // הכן אוכל חדש
+                snake.push({x: food.x, y: food.y}); // הוספת ההמבורגר לגוף הנחש
+            } else {
+                snake.pop();
+            }
+
+            const newHead = {x: snakeX, y: snakeY};
+
+            if (snakeX < 0 || snakeX >= canvas.width || snakeY < 0 || snakeY >= canvas.height || collision(newHead, snake)) {
+                clearInterval(game);
+                alert('משחק נגמר!');
+            }
+
+            snake.unshift(newHead);
+        }
+
+        const game = setInterval(() => {
+            if (imagesLoaded) {
+                draw();
+            }
+        }, 100);
+    </script>
+</body>
+</html>
